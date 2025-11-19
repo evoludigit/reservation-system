@@ -51,6 +51,7 @@ WHERE (status != 'cancelled');
 ```
 
 This ensures:
+
 - No two active bookings can overlap for the same accommodation
 - Database-level enforcement (cannot be bypassed by application code)
 - Concurrency-safe handling of race conditions
@@ -65,28 +66,33 @@ This ensures:
 ## Installation
 
 1. Install dependencies with uv:
+
 ```bash
 uv sync
 ```
 
 2. Set up PostgreSQL database:
+
 ```bash
 createdb reservation_db
 psql reservation_db -c "CREATE EXTENSION IF NOT EXISTS btree_gist;"
 ```
 
 3. Configure environment variables:
+
 ```bash
 cp .env.example .env
 # Edit .env with your database credentials
 ```
 
 4. Run migrations:
+
 ```bash
 uv run python manage.py migrate
 ```
 
 5. Create a superuser:
+
 ```bash
 uv run python manage.py createsuperuser
 ```
@@ -142,9 +148,9 @@ uv run python manage.py runserver
 
 ### API Documentation
 
-- Swagger UI: http://localhost:8000/api/docs/
-- ReDoc: http://localhost:8000/api/redoc/
-- OpenAPI Schema: http://localhost:8000/api/schema/
+- Swagger UI: <http://localhost:8000/api/docs/>
+- ReDoc: <http://localhost:8000/api/redoc/>
+- OpenAPI Schema: <http://localhost:8000/api/schema/>
 
 ## Project Structure
 
@@ -174,24 +180,24 @@ The project follows Domain-Driven Design principles:
 
 ```
 ┌─────────────────────────────────────────┐
-│           API Layer                      │
+│           API Layer                     │
 │  (ViewSets, Serializers, Filters)       │
 └───────────────┬─────────────────────────┘
                 │
 ┌───────────────▼─────────────────────────┐
-│        Application Layer                 │
+│        Application Layer                │
 │  (BookingService - Domain Service)      │
 └───────────────┬─────────────────────────┘
                 │
 ┌───────────────▼─────────────────────────┐
-│          Domain Layer                    │
+│          Domain Layer                   │
 │  (Entities, Value Objects)              │
 │  - Booker, Accommodation, Booking       │
 │  - DateRange (Value Object)             │
 └───────────────┬─────────────────────────┘
                 │
 ┌───────────────▼─────────────────────────┐
-│     Infrastructure Layer                 │
+│     Infrastructure Layer                │
 │  (PostgreSQL + Constraints)             │
 └─────────────────────────────────────────┘
 ```
