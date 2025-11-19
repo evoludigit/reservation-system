@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.validators import MinValueValidator
+from django.core.exceptions import ValidationError
 
 class Booker(models.Model):
     """Domain entity representing a group booking a reservation"""
@@ -80,3 +81,60 @@ class Accommodation(models.Model):
             description=description,
             is_active=True
         )
+
+
+class Booking(models.Model):
+    """Domain aggregate root for accommodation reservations"""
+
+    id = models.AutoField(primary_key=True)
+    accommodation = models.ForeignKey(
+        Accommodation,
+        on_delete=models.PROTECT,
+        related_name='bookings'
+    )
+    booker = models.ForeignKey(
+        Booker,
+        on_delete=models.PROTECT,
+        related_name='bookings'
+    )
+    start_date = models.DateField()
+    end_date = models.DateField()
+    number_of_guests = models.PositiveIntegerField(
+        validators=[MinValueValidator(1)]
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ('pending', 'Pending'),
+            ('confirmed', 'Confirmed'),
+            ('cancelled', 'Cancelled'),
+        ],
+        default='pending'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'bookings'
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(end_date__gt=models.F('start_date')),
+                name='end_date_after_start_date'
+            )
+        ]
+
+    def clean(self):
+        """Domain validation logic"""
+        super().clean()
+        if self.number_of_guests > self.accommodation.capacity:
+            raise ValidationError(
+                f"Number of guests ({self.number_of_guests}) exceeds "
+                f"accommodation capacity ({self.accommodation.capacity})"
+            )
+
+    def duration_nights(self) -> int:
+        """Calculate number of nights for the booking"""
+        return (self.end_date - self.start_date).days
+
+    def __str__(self):
+        return f"Booking {self.id}: {self.accommodation.name} ({self.start_date} - {self.end_date})"
