@@ -1,6 +1,7 @@
 # tests/unit/domain/test_accommodation.py
 import pytest
 from django.core.exceptions import ValidationError
+
 from bookings.models import Accommodation
 
 
@@ -12,7 +13,7 @@ class TestAccommodationEntity:
             name="Beach House",
             capacity=6,
             description="Beautiful seaside property",
-            price_per_night=150.00
+            price_per_night=150.00,
         )
         assert accommodation.name == "Beach House"
         assert accommodation.capacity == 6

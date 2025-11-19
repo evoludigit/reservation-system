@@ -1,6 +1,7 @@
-from .value_objects import DateRange
-from .exceptions import BookingValidationError
 from django.utils import timezone
+
+from .exceptions import BookingValidationError
+from .value_objects import DateRange
 
 
 class DateRangeValidator:
@@ -32,10 +33,11 @@ class AvailabilitySpecification:
     def is_satisfied_by(self, date_range: DateRange) -> bool:
         """Check if accommodation is available for the date range"""
         from ..models import Booking
+
         overlapping = Booking.objects.filter(
             accommodation=self.accommodation,
             start_date__lt=date_range.end_date,
             end_date__gt=date_range.start_date,
-            status__in=['pending', 'confirmed']
+            status__in=["pending", "confirmed"],
         ).exists()
         return not overlapping

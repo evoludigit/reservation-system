@@ -6,7 +6,7 @@ class BookerService:
         """Validate booker contact information"""
         # Domain validation logic
         # For now, basic checks
-        if not email or '@' not in email:
+        if not email or "@" not in email:
             return False
         if not phone or len(phone) < 10:
             return False
@@ -30,9 +30,10 @@ class AccommodationService:
 
 from django.db import transaction
 from django.utils import timezone
-from ..models import Booking, Accommodation
-from .value_objects import DateRange
+
+from ..models import Accommodation, Booking
 from .exceptions import BookingValidationError
+from .value_objects import DateRange
 
 
 class BookingService:
@@ -59,18 +60,14 @@ class BookingService:
             accommodation=accommodation,
             start_date__lt=date_range.end_date,
             end_date__gt=date_range.start_date,
-            status__in=['pending', 'confirmed']
+            status__in=["pending", "confirmed"],
         ).exists()
 
         return not overlapping
 
     @transaction.atomic
     def create_booking(
-        self,
-        accommodation: Accommodation,
-        booker,
-        date_range: DateRange,
-        number_of_guests: int
+        self, accommodation: Accommodation, booker, date_range: DateRange, number_of_guests: int
     ) -> Booking:
         """Create a new booking with full validation"""
         # Validate date range
@@ -95,7 +92,7 @@ class BookingService:
             start_date=date_range.start_date,
             end_date=date_range.end_date,
             number_of_guests=number_of_guests,
-            status='pending'
+            status="pending",
         )
 
         return booking
@@ -109,9 +106,9 @@ class BookingService:
     @staticmethod
     def can_confirm_booking(booking) -> bool:
         """Check if booking can be confirmed"""
-        return booking.status == 'pending'
+        return booking.status == "pending"
 
     @staticmethod
     def can_cancel_booking(booking) -> bool:
         """Check if booking can be cancelled"""
-        return booking.status in ['pending', 'confirmed']
+        return booking.status in ["pending", "confirmed"]
