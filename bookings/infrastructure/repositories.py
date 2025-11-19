@@ -1,13 +1,13 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
-from ..models import Booker, Accommodation, Booking
+
+from ..models import Accommodation, Booker, Booking
 
 
 class BookerRepository(ABC):
     """Abstract repository interface for Booker entities"""
 
     @abstractmethod
-    def get_by_id(self, booker_id: int) -> Optional[Booker]:
+    def get_by_id(self, booker_id: int) -> Booker | None:
         pass
 
     @abstractmethod
@@ -15,18 +15,18 @@ class BookerRepository(ABC):
         pass
 
     @abstractmethod
-    def find_by_email(self, email: str) -> Optional[Booker]:
+    def find_by_email(self, email: str) -> Booker | None:
         pass
 
     @abstractmethod
-    def get_all(self) -> List[Booker]:
+    def get_all(self) -> list[Booker]:
         pass
 
 
 class DjangoBookerRepository(BookerRepository):
     """Django ORM implementation of BookerRepository"""
 
-    def get_by_id(self, booker_id: int) -> Optional[Booker]:
+    def get_by_id(self, booker_id: int) -> Booker | None:
         try:
             return Booker.objects.get(id=booker_id)
         except Booker.DoesNotExist:
@@ -36,13 +36,13 @@ class DjangoBookerRepository(BookerRepository):
         booker.save()
         return booker
 
-    def find_by_email(self, email: str) -> Optional[Booker]:
+    def find_by_email(self, email: str) -> Booker | None:
         try:
             return Booker.objects.get(email=email)
         except Booker.DoesNotExist:
             return None
 
-    def get_all(self) -> List[Booker]:
+    def get_all(self) -> list[Booker]:
         return list(Booker.objects.all())
 
 
@@ -50,7 +50,7 @@ class AccommodationRepository(ABC):
     """Abstract repository interface for Accommodation entities"""
 
     @abstractmethod
-    def get_by_id(self, accommodation_id: int) -> Optional[Accommodation]:
+    def get_by_id(self, accommodation_id: int) -> Accommodation | None:
         pass
 
     @abstractmethod
@@ -58,18 +58,18 @@ class AccommodationRepository(ABC):
         pass
 
     @abstractmethod
-    def find_by_name(self, name: str) -> Optional[Accommodation]:
+    def find_by_name(self, name: str) -> Accommodation | None:
         pass
 
     @abstractmethod
-    def get_active(self) -> List[Accommodation]:
+    def get_active(self) -> list[Accommodation]:
         pass
 
 
 class DjangoAccommodationRepository(AccommodationRepository):
     """Django ORM implementation of AccommodationRepository"""
 
-    def get_by_id(self, accommodation_id: int) -> Optional[Accommodation]:
+    def get_by_id(self, accommodation_id: int) -> Accommodation | None:
         try:
             return Accommodation.objects.get(id=accommodation_id, is_active=True)
         except Accommodation.DoesNotExist:
@@ -79,13 +79,13 @@ class DjangoAccommodationRepository(AccommodationRepository):
         accommodation.save()
         return accommodation
 
-    def find_by_name(self, name: str) -> Optional[Accommodation]:
+    def find_by_name(self, name: str) -> Accommodation | None:
         try:
             return Accommodation.objects.get(name=name, is_active=True)
         except Accommodation.DoesNotExist:
             return None
 
-    def get_active(self) -> List[Accommodation]:
+    def get_active(self) -> list[Accommodation]:
         return list(Accommodation.objects.filter(is_active=True))
 
 
@@ -93,7 +93,7 @@ class BookingRepository(ABC):
     """Abstract repository interface for Booking entities"""
 
     @abstractmethod
-    def get_by_id(self, booking_id: int) -> Optional[Booking]:
+    def get_by_id(self, booking_id: int) -> Booking | None:
         pass
 
     @abstractmethod
@@ -101,18 +101,20 @@ class BookingRepository(ABC):
         pass
 
     @abstractmethod
-    def find_by_accommodation_and_dates(self, accommodation: Accommodation, start_date, end_date) -> List[Booking]:
+    def find_by_accommodation_and_dates(
+        self, accommodation: Accommodation, start_date, end_date
+    ) -> list[Booking]:
         pass
 
     @abstractmethod
-    def get_active_bookings_for_accommodation(self, accommodation: Accommodation) -> List[Booking]:
+    def get_active_bookings_for_accommodation(self, accommodation: Accommodation) -> list[Booking]:
         pass
 
 
 class DjangoBookingRepository(BookingRepository):
     """Django ORM implementation of BookingRepository"""
 
-    def get_by_id(self, booking_id: int) -> Optional[Booking]:
+    def get_by_id(self, booking_id: int) -> Booking | None:
         try:
             return Booking.objects.get(id=booking_id)
         except Booking.DoesNotExist:
@@ -122,16 +124,19 @@ class DjangoBookingRepository(BookingRepository):
         booking.save()
         return booking
 
-    def find_by_accommodation_and_dates(self, accommodation: Accommodation, start_date, end_date) -> List[Booking]:
-        return list(Booking.objects.filter(
-            accommodation=accommodation,
-            start_date__lt=end_date,
-            end_date__gt=start_date,
-            status__in=['pending', 'confirmed']
-        ))
+    def find_by_accommodation_and_dates(
+        self, accommodation: Accommodation, start_date, end_date
+    ) -> list[Booking]:
+        return list(
+            Booking.objects.filter(
+                accommodation=accommodation,
+                start_date__lt=end_date,
+                end_date__gt=start_date,
+                status__in=["pending", "confirmed"],
+            )
+        )
 
-    def get_active_bookings_for_accommodation(self, accommodation: Accommodation) -> List[Booking]:
-        return list(Booking.objects.filter(
-            accommodation=accommodation,
-            status__in=['pending', 'confirmed']
-        ))
+    def get_active_bookings_for_accommodation(self, accommodation: Accommodation) -> list[Booking]:
+        return list(
+            Booking.objects.filter(accommodation=accommodation, status__in=["pending", "confirmed"])
+        )

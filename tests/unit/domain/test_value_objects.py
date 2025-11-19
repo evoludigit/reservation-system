@@ -1,6 +1,8 @@
 # tests/unit/domain/test_value_objects.py
-import pytest
 from datetime import date
+
+import pytest
+
 from bookings.domain.value_objects import DateRange
 
 

@@ -1,0 +1,200 @@
+[project]
+name = "reservation-system"
+version = "0.1.0"
+description = "Housing reservation management system with PostgreSQL constraints and DDD architecture"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+    { name = "Your Name", email = "your.email@example.com" }
+]
+keywords = ["django", "postgresql", "ddd", "reservations", "booking"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: Django :: 5.2",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "django>=5.2.0,<6.0",
+    "djangorestframework>=3.16.0,<4.0",
+    "drf-spectacular>=0.29.0,<1.0",
+    "psycopg[binary]>=3.2.0,<4.0",
+    "django-filter>=24.0,<25.0",
+    "python-dotenv>=1.0.0,<2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.0.0,<10.0",
+    "pytest-django>=4.11.0,<5.0",
+    "pytest-cov>=6.0.0,<7.0",
+    "pytest-xdist>=3.6.0,<4.0",
+    "ruff>=0.8.0,<1.0",
+    "mypy>=1.13.0,<2.0",
+    "django-stubs>=5.1.0,<6.0",
+    "djangorestframework-stubs>=3.15.0,<4.0",
+    "ipython>=8.18.0,<9.0",
+    "ipdb>=0.13.0,<1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/reservation-system"
+Repository = "https://github.com/yourusername/reservation-system.git"
+Issues = "https://github.com/yourusername/reservation-system/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "reservation_system.settings"
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+testpaths = ["tests"]
+addopts = [
+    "--strict-markers",
+    "--tb=short",
+    "--cov=bookings",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+    "--no-cov-on-fail",
+]
+markers = [
+    "unit: Unit tests for domain logic",
+    "integration: Integration tests with database",
+    "api: API endpoint tests",
+    "slow: Slow running tests",
+]
+
+[tool.coverage.run]
+source = ["bookings"]
+omit = [
+    "*/migrations/*",
+    "*/tests/*",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/virtualenv/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "def __str__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+indent-width = 4
+
+exclude = [
+    ".git",
+    ".venv",
+    "venv",
+    "__pycache__",
+    "migrations",
+    "*.egg-info",
+    ".pytest_cache",
+    ".coverage",
+    "htmlcov",
+    "dist",
+    "build",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "N",      # pep8-naming
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "DTZ",    # flake8-datetimez
+    "T10",    # flake8-debugger
+    "DJ",     # flake8-django
+    "ISC",    # flake8-implicit-str-concat
+    "PIE",    # flake8-pie
+    "PT",     # flake8-pytest-style
+    "Q",      # flake8-quotes
+    "RSE",    # flake8-raise
+    "RET",    # flake8-return
+    "SIM",    # flake8-simplify
+    "TID",    # flake8-tidy-imports
+    "ARG",    # flake8-unused-arguments
+    "PTH",    # flake8-use-pathlib
+    "ERA",    # eradicate
+    "PL",     # pylint
+    "RUF",    # ruff-specific rules
+]
+
+ignore = [
+    "E501",    # line too long (handled by formatter)
+    "PLR0913", # too many arguments
+    "PLR2004", # magic value comparison
+    "DJ001",   # django model string field without max_length (we use it intentionally)
+    "TID252",  # relative imports from parent (standard in Django apps)
+    "RUF012",  # mutable class attributes (Django Meta classes)
+    "PT012",   # pytest.raises() with multiple statements (acceptable pattern)
+    "PT011",   # pytest.raises() too broad (we want to catch general exceptions sometimes)
+    "SIM103",  # return condition directly (prefer explicit if/else for readability)
+    "RET504",  # unnecessary assignment before return (prefer explicit variable for clarity)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/*" = ["ARG001", "PLR2004", "S101"]
+"*/migrations/*" = ["ALL"]
+"manage.py" = ["PLC0415"]  # Conditional imports are required in manage.py
+"bookings/models.py" = ["DJ012", "PLC0415"]  # Django model method ordering and conditional imports
+"bookings/domain/*.py" = ["E402", "PLC0415"]  # Module imports after code (domain services)
+"bookings/api/views.py" = ["ARG002"]  # Unused args/kwargs in DRF views (required by framework)
+
+[tool.ruff.lint.isort]
+known-first-party = ["bookings", "reservation_system"]
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
+
+[[tool.mypy.overrides]]
+module = "*.migrations.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+
+[tool.django-stubs]
+django_settings_module = "reservation_system.settings"
+
+[tool.hatch.build.targets.wheel]
+packages = ["bookings", "reservation_system"]

@@ -1,10 +1,11 @@
 # tests/unit/domain/test_booking_service.py
-import pytest
 from datetime import date
-from unittest.mock import Mock
+
+import pytest
+
+from bookings.domain.exceptions import BookingValidationError
 from bookings.domain.services import BookingService
 from bookings.domain.value_objects import DateRange
-from bookings.domain.exceptions import BookingValidationError
 from bookings.models import Accommodation, Booker, Booking
 
 
@@ -27,20 +28,24 @@ class TestBookingService:
         """Service checks accommodation availability for date range"""
         service = BookingService()
 
-        accommodation = Accommodation.objects.create(name="Test House", capacity=4, price_per_night=100)
+        accommodation = Accommodation.objects.create(
+            name="Test House", capacity=4, price_per_night=100
+        )
 
         # No existing bookings
         date_range = DateRange(date(2026, 6, 1), date(2026, 6, 10))
         assert service.is_available(accommodation, date_range) is True
 
         # Create booking
-        booker = Booker.objects.create(name="Test Booker", group_size=2, email="test@example.com", phone="123")
+        booker = Booker.objects.create(
+            name="Test Booker", group_size=2, email="test@example.com", phone="123"
+        )
         Booking.objects.create(
             accommodation=accommodation,
             booker=booker,
             start_date=date(2026, 6, 5),
             end_date=date(2026, 6, 15),
-            number_of_guests=2
+            number_of_guests=2,
         )
 
         # Overlapping range not available
@@ -50,16 +55,29 @@ class TestBookingService:
         future_range = DateRange(date(2026, 7, 1), date(2026, 7, 10))
         assert service.is_available(accommodation, future_range) is True
 
+    @pytest.mark.django_db
     def test_create_booking_with_validation(self):
         """Service creates booking with full validation"""
         service = BookingService()
 
-        # Mock objects
-        accommodation = Mock()
-        accommodation.capacity = 4
-        booker = Mock()
+        # Create real objects for integration test
+        accommodation = Accommodation.objects.create(
+            name="Test House", capacity=4, price_per_night=100
+        )
+        booker = Booker.objects.create(
+            name="Test Booker", group_size=2, email="test@example.com", phone="123"
+        )
 
-        date_range = DateRange(date(2025, 6, 1), date(2025, 6, 10))
+        date_range = DateRange(date(2026, 6, 1), date(2026, 6, 10))
 
-        # Mock the booking creation
-        # This test would need mocking of the database operations
+        # Create booking through service
+        booking = service.create_booking(
+            accommodation=accommodation,
+            booker=booker,
+            date_range=date_range,
+            number_of_guests=2,
+        )
+
+        assert booking.id is not None
+        assert booking.status == "pending"
+        assert booking.duration_nights() == 9

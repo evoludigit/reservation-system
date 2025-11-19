@@ -1,6 +1,7 @@
-from django.db import models
-from django.core.validators import MinValueValidator
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
+from django.db import models
+
 
 class Booker(models.Model):
     """Domain entity representing a group booking a reservation"""
@@ -9,14 +10,12 @@ class Booker(models.Model):
     name = models.CharField(max_length=255)
     email = models.EmailField()
     phone = models.CharField(max_length=20)
-    group_size = models.PositiveIntegerField(
-        validators=[MinValueValidator(1)]
-    )
+    group_size = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'bookers'
+        db_table = "bookers"
 
     def __str__(self):
         return f"{self.name} ({self.group_size} persons)"
@@ -38,20 +37,16 @@ class Accommodation(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
-    capacity = models.PositiveIntegerField(
-        validators=[MinValueValidator(1)]
-    )
+    capacity = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     price_per_night = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        validators=[MinValueValidator(0.01)]
+        max_digits=10, decimal_places=2, validators=[MinValueValidator(0.01)]
     )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'accommodations'
+        db_table = "accommodations"
 
     def can_accommodate(self, group_size: int) -> bool:
         """Check if accommodation can fit the group"""
@@ -61,25 +56,29 @@ class Accommodation(models.Model):
         return f"{self.name} (capacity: {self.capacity})"
 
     @classmethod
-    def create_standard_house(cls, name: str, capacity: int, price_per_night: float, description: str = ""):
+    def create_standard_house(
+        cls, name: str, capacity: int, price_per_night: float, description: str = ""
+    ):
         """Factory method for standard house"""
         return cls(
             name=name,
             capacity=capacity,
             price_per_night=price_per_night,
             description=description,
-            is_active=True
+            is_active=True,
         )
 
     @classmethod
-    def create_luxury_villa(cls, name: str, capacity: int, price_per_night: float, description: str = ""):
+    def create_luxury_villa(
+        cls, name: str, capacity: int, price_per_night: float, description: str = ""
+    ):
         """Factory method for luxury villa with premium pricing"""
         return cls(
             name=name,
             capacity=capacity,
             price_per_night=price_per_night,
             description=description,
-            is_active=True
+            is_active=True,
         )
 
 
@@ -88,44 +87,36 @@ class Booking(models.Model):
 
     id = models.AutoField(primary_key=True)
     accommodation = models.ForeignKey(
-        Accommodation,
-        on_delete=models.PROTECT,
-        related_name='bookings'
+        Accommodation, on_delete=models.PROTECT, related_name="bookings"
     )
-    booker = models.ForeignKey(
-        Booker,
-        on_delete=models.PROTECT,
-        related_name='bookings'
-    )
+    booker = models.ForeignKey(Booker, on_delete=models.PROTECT, related_name="bookings")
     start_date = models.DateField()
     end_date = models.DateField()
-    number_of_guests = models.PositiveIntegerField(
-        validators=[MinValueValidator(1)]
-    )
+    number_of_guests = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     status = models.CharField(
         max_length=20,
         choices=[
-            ('pending', 'Pending'),
-            ('confirmed', 'Confirmed'),
-            ('cancelled', 'Cancelled'),
+            ("pending", "Pending"),
+            ("confirmed", "Confirmed"),
+            ("cancelled", "Cancelled"),
         ],
-        default='pending'
+        default="pending",
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'bookings'
+        db_table = "bookings"
         constraints = [
             models.CheckConstraint(
-                check=models.Q(end_date__gt=models.F('start_date')),
-                name='end_date_after_start_date'
+                condition=models.Q(end_date__gt=models.F("start_date")),
+                name="end_date_after_start_date",
             )
         ]
         indexes = [
-            models.Index(fields=['accommodation', 'start_date', 'end_date']),
-            models.Index(fields=['booker', 'created_at']),
-            models.Index(fields=['status', 'start_date']),
+            models.Index(fields=["accommodation", "start_date", "end_date"]),
+            models.Index(fields=["booker", "created_at"]),
+            models.Index(fields=["status", "start_date"]),
         ]
 
     def clean(self):
@@ -145,11 +136,14 @@ class Booking(models.Model):
                 accommodation=self.accommodation,
                 start_date__lt=self.end_date,
                 end_date__gt=self.start_date,
-                status__in=['pending', 'confirmed']
+                status__in=["pending", "confirmed"],
             ).exists()
             if overlapping:
                 from django.db import IntegrityError
-                raise IntegrityError("Overlapping booking detected for this accommodation and date range")
+
+                raise IntegrityError(
+                    "Overlapping booking detected for this accommodation and date range"
+                )
 
         super().save(*args, **kwargs)
 

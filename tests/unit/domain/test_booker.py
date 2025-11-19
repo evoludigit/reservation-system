@@ -1,6 +1,7 @@
 # tests/unit/domain/test_booker.py
 import pytest
 from django.core.exceptions import ValidationError
+
 from bookings.models import Booker
 
 
@@ -9,10 +10,7 @@ class TestBookerEntity:
     def test_create_booker_with_valid_data(self):
         """Booker can be created with name and size"""
         booker = Booker.objects.create(
-            name="John Doe",
-            group_size=4,
-            email="john@example.com",
-            phone="+33612345678"
+            name="John Doe", group_size=4, email="john@example.com", phone="+33612345678"
         )
         assert booker.name == "John Doe"
         assert booker.group_size == 4

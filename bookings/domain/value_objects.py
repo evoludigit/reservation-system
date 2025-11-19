@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from datetime import date
-from typing import Any
 
 
 @dataclass(frozen=True)
@@ -15,12 +14,9 @@ class DateRange:
         if self.end_date <= self.start_date:
             raise ValueError("End date must be after start date")
 
-    def overlaps(self, other: 'DateRange') -> bool:
+    def overlaps(self, other: "DateRange") -> bool:
         """Check if this date range overlaps with another"""
-        return (
-            self.start_date < other.end_date and
-            other.start_date < self.end_date
-        )
+        return self.start_date < other.end_date and other.start_date < self.end_date
 
     def contains_date(self, check_date: date) -> bool:
         """Check if a specific date falls within this range"""
@@ -34,7 +30,7 @@ class DateRange:
         """Calculate the number of nights (days - 1)"""
         return max(0, self.duration_days() - 1)
 
-    def __lt__(self, other: 'DateRange') -> bool:
+    def __lt__(self, other: "DateRange") -> bool:
         """Compare by start date"""
         return self.start_date < other.start_date
 
