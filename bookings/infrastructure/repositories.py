@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
-from ..models import Booker
+from ..models import Booker, Accommodation
 
 
 class BookerRepository(ABC):
@@ -44,3 +44,46 @@ class DjangoBookerRepository(BookerRepository):
 
     def get_all(self) -> List[Booker]:
         return list(Booker.objects.all())
+
+
+class AccommodationRepository(ABC):
+    """Abstract repository interface for Accommodation entities"""
+
+    @abstractmethod
+    def get_by_id(self, accommodation_id: int) -> Optional[Accommodation]:
+        pass
+
+    @abstractmethod
+    def save(self, accommodation: Accommodation) -> Accommodation:
+        pass
+
+    @abstractmethod
+    def find_by_name(self, name: str) -> Optional[Accommodation]:
+        pass
+
+    @abstractmethod
+    def get_active(self) -> List[Accommodation]:
+        pass
+
+
+class DjangoAccommodationRepository(AccommodationRepository):
+    """Django ORM implementation of AccommodationRepository"""
+
+    def get_by_id(self, accommodation_id: int) -> Optional[Accommodation]:
+        try:
+            return Accommodation.objects.get(id=accommodation_id, is_active=True)
+        except Accommodation.DoesNotExist:
+            return None
+
+    def save(self, accommodation: Accommodation) -> Accommodation:
+        accommodation.save()
+        return accommodation
+
+    def find_by_name(self, name: str) -> Optional[Accommodation]:
+        try:
+            return Accommodation.objects.get(name=name, is_active=True)
+        except Accommodation.DoesNotExist:
+            return None
+
+    def get_active(self) -> List[Accommodation]:
+        return list(Accommodation.objects.filter(is_active=True))
