@@ -122,6 +122,11 @@ class Booking(models.Model):
                 name='end_date_after_start_date'
             )
         ]
+        indexes = [
+            models.Index(fields=['accommodation', 'start_date', 'end_date']),
+            models.Index(fields=['booker', 'created_at']),
+            models.Index(fields=['status', 'start_date']),
+        ]
 
     def clean(self):
         """Domain validation logic"""
@@ -131,6 +136,22 @@ class Booking(models.Model):
                 f"Number of guests ({self.number_of_guests}) exceeds "
                 f"accommodation capacity ({self.accommodation.capacity})"
             )
+
+    def save(self, *args, **kwargs):
+        """Override save to check for overlapping bookings"""
+        # Check for overlapping bookings before saving
+        if not self.pk:  # Only check on creation, not update
+            overlapping = Booking.objects.filter(
+                accommodation=self.accommodation,
+                start_date__lt=self.end_date,
+                end_date__gt=self.start_date,
+                status__in=['pending', 'confirmed']
+            ).exists()
+            if overlapping:
+                from django.db import IntegrityError
+                raise IntegrityError("Overlapping booking detected for this accommodation and date range")
+
+        super().save(*args, **kwargs)
 
     def duration_nights(self) -> int:
         """Calculate number of nights for the booking"""
