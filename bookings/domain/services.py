@@ -103,7 +103,7 @@ class BookingService:
             if "bookings_no_overlap" in str(e):
                 raise BookingValidationError(
                     f"Accommodation not available from {date_range.start_date} to {date_range.end_date}"
-                )
+                ) from e
             raise
 
     @staticmethod

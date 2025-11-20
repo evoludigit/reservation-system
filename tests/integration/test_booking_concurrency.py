@@ -173,7 +173,9 @@ class TestExclusionConstraintEnforcement:
             )
 
         # Verify it's the exclusion constraint
-        assert "bookings_no_overlap" in str(exc_info.value) or "exclude" in str(exc_info.value).lower()
+        assert (
+            "bookings_no_overlap" in str(exc_info.value) or "exclude" in str(exc_info.value).lower()
+        )
 
     def test_exclusion_constraint_allows_cancelled_overlaps(self):
         """Cancelled bookings don't trigger exclusion constraint"""

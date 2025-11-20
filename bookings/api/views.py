@@ -164,9 +164,7 @@ class BookingViewSet(viewsets.ModelViewSet):
 
         try:
             # Create service with repository dependencies
-            service = BookingService(
-                self.booking_repo, self.accommodation_repo, self.booker_repo
-            )
+            service = BookingService(self.booking_repo, self.accommodation_repo, self.booker_repo)
 
             booking = service.create_booking(
                 accommodation_id=serializer.validated_data["accommodation"].id,

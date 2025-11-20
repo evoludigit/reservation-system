@@ -1,4 +1,6 @@
 # tests/unit/infrastructure/test_repositories.py
+from datetime import date
+
 import pytest
 
 from bookings.infrastructure.repositories import (
@@ -7,7 +9,6 @@ from bookings.infrastructure.repositories import (
     DjangoBookingRepository,
 )
 from bookings.models import Accommodation, Booker, Booking
-from datetime import date
 
 
 @pytest.mark.django_db
@@ -111,9 +112,7 @@ class TestDjangoAccommodationRepository:
     def test_save_creates_new_accommodation(self):
         """Repository can save a new accommodation"""
         repo = DjangoAccommodationRepository()
-        accommodation = Accommodation(
-            name="Mountain Cabin", capacity=4, price_per_night=120.00
-        )
+        accommodation = Accommodation(name="Mountain Cabin", capacity=4, price_per_night=120.00)
 
         saved_accommodation = repo.save(accommodation)
 
