@@ -129,6 +129,26 @@ class Booking(models.Model):
                 f"accommodation capacity ({self.accommodation.capacity})"
             )
 
+    def save(self, *args, **kwargs):
+        """Override save to check for overlapping bookings on non-PostgreSQL databases"""
+        from django.db import IntegrityError, connection
+
+        # On PostgreSQL, the exclusion constraint handles this
+        # On other databases (SQLite, MySQL), we need application-level check
+        if connection.vendor != "postgresql" and not self.pk:
+            overlapping = Booking.objects.filter(
+                accommodation=self.accommodation,
+                start_date__lt=self.end_date,
+                end_date__gt=self.start_date,
+                status__in=["pending", "confirmed"],
+            ).exists()
+            if overlapping:
+                raise IntegrityError(
+                    "Overlapping booking detected for this accommodation and date range"
+                )
+
+        super().save(*args, **kwargs)
+
     def duration_nights(self) -> int:
         """Calculate number of nights for the booking"""
         return (self.end_date - self.start_date).days

@@ -172,9 +172,12 @@ class TestExclusionConstraintEnforcement:
                 status="confirmed",
             )
 
-        # Verify it's the exclusion constraint
+        # Verify it's an integrity error (PostgreSQL constraint or application check)
+        error_message = str(exc_info.value).lower()
         assert (
-            "bookings_no_overlap" in str(exc_info.value) or "exclude" in str(exc_info.value).lower()
+            "bookings_no_overlap" in error_message
+            or "exclude" in error_message
+            or "overlapping" in error_message
         )
 
     def test_exclusion_constraint_allows_cancelled_overlaps(self):

@@ -37,9 +37,13 @@ class TestBookingOverlapConstraint:
                 number_of_guests=2,
             )
 
-        # Verify it's the exclusion constraint
+        # Verify it's an integrity error (PostgreSQL constraint or application check)
         error_message = str(exc_info.value).lower()
-        assert "bookings_no_overlap" in error_message or "exclude" in error_message
+        assert (
+            "bookings_no_overlap" in error_message
+            or "exclude" in error_message
+            or "overlapping" in error_message
+        )
 
     def test_adjacent_bookings_allowed(self):
         """Adjacent bookings (no overlap) are allowed"""
