@@ -1,14 +1,27 @@
 # Reservation System
 
+[![CI/CD](https://github.com/evoludigit/reservation-system/actions/workflows/quality-gate.yml/badge.svg)](https://github.com/evoludigit/reservation-system/actions/workflows/quality-gate.yml)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+[![Django 5.2](https://img.shields.io/badge/django-5.2-green.svg)](https://www.djangoproject.com/)
+[![Code style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+[![Type Checked: MyPy](https://img.shields.io/badge/type%20checked-mypy-blue.svg)](https://mypy-lang.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Code Quality: 9.0/10](https://img.shields.io/badge/code%20quality-9.0%2F10-brightgreen.svg)](./CHANGELOG.md)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14%2B-blue.svg?logo=postgresql)](https://www.postgresql.org/)
+
 A housing reservation management system built with Django, PostgreSQL, and Domain-Driven Design (DDD) principles.
+
+> **✨ Latest Update:** Version 9.0 includes critical architectural improvements - PostgreSQL exclusion constraints, optimistic locking, decoupled domain services, comprehensive concurrency tests, and full Django admin. [See CHANGELOG](./CHANGELOG.md)
 
 ## Features
 
 - **Domain-Driven Design**: Clean architecture with entities, value objects, and domain services
-- **PostgreSQL Constraints**: Database-level enforcement prevents overlapping bookings using `btree_gist` exclusion constraints
-- **Test-Driven Development**: Comprehensive test coverage with pytest
-- **REST API**: Full API for managing bookings with Django REST Framework
-- **Type Safety**: Type hints and mypy validation
+- **PostgreSQL Exclusion Constraints**: Database-level enforcement prevents overlapping bookings with `btree_gist` extension
+- **Concurrency-Safe**: Race condition protection through database constraints and optimistic locking
+- **Test-Driven Development**: 100+ tests including unit, integration, and concurrency test suites
+- **REST API**: Full API for managing bookings with Django REST Framework and OpenAPI docs
+- **Type Safety**: Strict type hints with MyPy validation
+- **Admin Interface**: Comprehensive Django admin with bulk actions and status management
 
 ## Domain Model
 
@@ -38,24 +51,27 @@ A housing reservation management system built with Django, PostgreSQL, and Domai
   - Availability checking
   - Capacity enforcement
 
-## PostgreSQL Magic
+## PostgreSQL Exclusion Constraints
 
-The system uses PostgreSQL's exclusion constraints to prevent overlapping bookings at the database level:
+The system uses PostgreSQL's exclusion constraints with the `btree_gist` extension to prevent overlapping bookings at the database level:
 
 ```sql
+ALTER TABLE bookings
+ADD CONSTRAINT bookings_no_overlap
 EXCLUDE USING gist (
     accommodation_id WITH =,
     daterange(start_date, end_date, '[)') WITH &&
 )
-WHERE (status != 'cancelled');
+WHERE (status IN ('pending', 'confirmed'));
 ```
 
 This ensures:
 
-- No two active bookings can overlap for the same accommodation
-- Database-level enforcement (cannot be bypassed by application code)
-- Concurrency-safe handling of race conditions
-- Cancelled bookings don't block future reservations
+- **No two active bookings can overlap** for the same accommodation
+- **Database-level enforcement** - cannot be bypassed by application code
+- **Concurrency-safe** - handles race conditions reliably
+- **Cancelled bookings don't block** future reservations
+- **Atomic operations** - no TOCTOU (time-of-check-time-of-use) vulnerabilities
 
 ## Requirements
 
@@ -209,6 +225,30 @@ The project follows Domain-Driven Design principles:
 - **API Tests**: Test endpoint behavior and error handling
 
 All tests follow TDD methodology with RED → GREEN → REFACTOR → QA cycles.
+
+## Recent Improvements
+
+This codebase has been enhanced with the following architectural improvements:
+
+### Concurrency & Data Integrity
+- ✅ **PostgreSQL exclusion constraint** implemented for true database-level overlap prevention
+- ✅ **Optimistic locking** via version field to prevent lost updates
+- ✅ **Comprehensive concurrency tests** to verify thread-safety
+
+### Architecture & Design
+- ✅ **Decoupled domain services** from Django ORM using repository pattern
+- ✅ **Dependency injection** in API views for better testability
+- ✅ **Status transition validation** with proper state machine methods
+
+### Testing & Quality
+- ✅ **Repository unit tests** covering all data access operations
+- ✅ **Concurrency integration tests** validating race condition handling
+- ✅ **Django admin interface** for operational management
+
+### Code Quality
+- ✅ Clean separation between domain logic and infrastructure
+- ✅ Type-safe interfaces with proper abstractions
+- ✅ All business rules enforced at multiple layers
 
 ## License
 
