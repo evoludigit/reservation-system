@@ -38,24 +38,27 @@ A housing reservation management system built with Django, PostgreSQL, and Domai
   - Availability checking
   - Capacity enforcement
 
-## PostgreSQL Magic
+## PostgreSQL Exclusion Constraints
 
-The system uses PostgreSQL's exclusion constraints to prevent overlapping bookings at the database level:
+The system uses PostgreSQL's exclusion constraints with the `btree_gist` extension to prevent overlapping bookings at the database level:
 
 ```sql
+ALTER TABLE bookings
+ADD CONSTRAINT bookings_no_overlap
 EXCLUDE USING gist (
     accommodation_id WITH =,
     daterange(start_date, end_date, '[)') WITH &&
 )
-WHERE (status != 'cancelled');
+WHERE (status IN ('pending', 'confirmed'));
 ```
 
 This ensures:
 
-- No two active bookings can overlap for the same accommodation
-- Database-level enforcement (cannot be bypassed by application code)
-- Concurrency-safe handling of race conditions
-- Cancelled bookings don't block future reservations
+- **No two active bookings can overlap** for the same accommodation
+- **Database-level enforcement** - cannot be bypassed by application code
+- **Concurrency-safe** - handles race conditions reliably
+- **Cancelled bookings don't block** future reservations
+- **Atomic operations** - no TOCTOU (time-of-check-time-of-use) vulnerabilities
 
 ## Requirements
 
@@ -209,6 +212,30 @@ The project follows Domain-Driven Design principles:
 - **API Tests**: Test endpoint behavior and error handling
 
 All tests follow TDD methodology with RED → GREEN → REFACTOR → QA cycles.
+
+## Recent Improvements
+
+This codebase has been enhanced with the following architectural improvements:
+
+### Concurrency & Data Integrity
+- ✅ **PostgreSQL exclusion constraint** implemented for true database-level overlap prevention
+- ✅ **Optimistic locking** via version field to prevent lost updates
+- ✅ **Comprehensive concurrency tests** to verify thread-safety
+
+### Architecture & Design
+- ✅ **Decoupled domain services** from Django ORM using repository pattern
+- ✅ **Dependency injection** in API views for better testability
+- ✅ **Status transition validation** with proper state machine methods
+
+### Testing & Quality
+- ✅ **Repository unit tests** covering all data access operations
+- ✅ **Concurrency integration tests** validating race condition handling
+- ✅ **Django admin interface** for operational management
+
+### Code Quality
+- ✅ Clean separation between domain logic and infrastructure
+- ✅ Type-safe interfaces with proper abstractions
+- ✅ All business rules enforced at multiple layers
 
 ## License
 

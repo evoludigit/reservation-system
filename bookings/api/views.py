@@ -7,6 +7,11 @@ from rest_framework.response import Response
 from ..domain.exceptions import BookingValidationError
 from ..domain.services import BookingService
 from ..domain.value_objects import DateRange
+from ..infrastructure.repositories import (
+    DjangoAccommodationRepository,
+    DjangoBookerRepository,
+    DjangoBookingRepository,
+)
 from ..models import Booking
 from .filters import BookingFilter
 from .serializers import BookingCreateSerializer, BookingSerializer
@@ -35,6 +40,13 @@ class BookingViewSet(viewsets.ModelViewSet):
     pagination_class = BookingPagination
     ordering_fields = ["start_date", "created_at", "accommodation__name"]
     search_fields = ["booker__name", "accommodation__name"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Initialize repositories for dependency injection
+        self.booking_repo = DjangoBookingRepository()
+        self.accommodation_repo = DjangoAccommodationRepository()
+        self.booker_repo = DjangoBookerRepository()
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -151,10 +163,14 @@ class BookingViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
 
         try:
-            service = BookingService()
+            # Create service with repository dependencies
+            service = BookingService(
+                self.booking_repo, self.accommodation_repo, self.booker_repo
+            )
+
             booking = service.create_booking(
-                accommodation=serializer.validated_data["accommodation"],
-                booker=serializer.validated_data["booker"],
+                accommodation_id=serializer.validated_data["accommodation"].id,
+                booker_id=serializer.validated_data["booker"].id,
                 date_range=DateRange(
                     serializer.validated_data["start_date"], serializer.validated_data["end_date"]
                 ),
@@ -168,11 +184,17 @@ class BookingViewSet(viewsets.ModelViewSet):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except BookingValidationError as e:
             # Check if it's availability or other validation
-            if "not available" in str(e).lower():
+            if "not available" in str(e).lower() or "not found" in str(e).lower():
                 return Response({"error": str(e)}, status=status.HTTP_409_CONFLICT)
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        except IntegrityError:
+        except IntegrityError as e:
+            # Catch database constraint violations
+            if "bookings_no_overlap" in str(e):
+                return Response(
+                    {"error": "Accommodation not available for selected dates"},
+                    status=status.HTTP_409_CONFLICT,
+                )
             return Response(
-                {"error": "Accommodation not available for selected dates"},
-                status=status.HTTP_409_CONFLICT,
+                {"error": "Database constraint violation"},
+                status=status.HTTP_400_BAD_REQUEST,
             )

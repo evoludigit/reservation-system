@@ -10,7 +10,7 @@ from bookings.models import Accommodation, Booker, Booking
 @pytest.mark.django_db
 class TestBookingOverlapConstraint:
     def test_cannot_create_overlapping_bookings(self):
-        """Application-level validation prevents overlapping bookings"""
+        """PostgreSQL exclusion constraint prevents overlapping bookings"""
         booker = Booker.objects.create(
             name="Test Booker", group_size=4, email="test@example.com", phone="1234567890"
         )
@@ -27,7 +27,7 @@ class TestBookingOverlapConstraint:
             number_of_guests=2,
         )
 
-        # Attempt overlapping booking - should fail
+        # Attempt overlapping booking - should fail due to database constraint
         with pytest.raises(IntegrityError) as exc_info:
             Booking.objects.create(
                 accommodation=accommodation,
@@ -37,7 +37,9 @@ class TestBookingOverlapConstraint:
                 number_of_guests=2,
             )
 
-        assert "overlapping" in str(exc_info.value).lower()
+        # Verify it's the exclusion constraint
+        error_message = str(exc_info.value).lower()
+        assert "bookings_no_overlap" in error_message or "exclude" in error_message
 
     def test_adjacent_bookings_allowed(self):
         """Adjacent bookings (no overlap) are allowed"""

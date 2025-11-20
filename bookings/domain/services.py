@@ -1,3 +1,10 @@
+from django.db import IntegrityError, transaction
+from django.utils import timezone
+
+from .exceptions import BookingValidationError
+from .value_objects import DateRange
+
+
 class BookerService:
     """Domain service for booker-related business logic"""
 
@@ -28,18 +35,16 @@ class AccommodationService:
         return True
 
 
-from django.db import transaction
-from django.utils import timezone
-
-from ..models import Accommodation, Booking
-from .exceptions import BookingValidationError
-from .value_objects import DateRange
-
-
 class BookingService:
-    """Domain service for booking operations"""
+    """Domain service for booking operations - decoupled from infrastructure"""
 
-    def validate_date_range(self, date_range: DateRange) -> bool:
+    def __init__(self, booking_repository, accommodation_repository, booker_repository):
+        """Initialize service with repository dependencies"""
+        self.booking_repo = booking_repository
+        self.accommodation_repo = accommodation_repository
+        self.booker_repo = booker_repository
+
+    def validate_date_range(self, date_range: DateRange) -> None:
         """Validate booking date range against business rules"""
         today = timezone.now().date()
 
@@ -52,32 +57,26 @@ class BookingService:
         if date_range.duration_days() > 365:
             raise BookingValidationError("Booking cannot exceed 365 nights")
 
-        return True
-
-    def is_available(self, accommodation: Accommodation, date_range: DateRange) -> bool:
-        """Check if accommodation is available for the date range"""
-        overlapping = Booking.objects.filter(
-            accommodation=accommodation,
-            start_date__lt=date_range.end_date,
-            end_date__gt=date_range.start_date,
-            status__in=["pending", "confirmed"],
-        ).exists()
-
-        return not overlapping
-
     @transaction.atomic
     def create_booking(
-        self, accommodation: Accommodation, booker, date_range: DateRange, number_of_guests: int
-    ) -> Booking:
+        self,
+        accommodation_id: int,
+        booker_id: int,
+        date_range: DateRange,
+        number_of_guests: int,
+    ):
         """Create a new booking with full validation"""
+        # Load entities via repositories
+        accommodation = self.accommodation_repo.get_by_id(accommodation_id)
+        if not accommodation:
+            raise BookingValidationError(f"Accommodation {accommodation_id} not found")
+
+        booker = self.booker_repo.get_by_id(booker_id)
+        if not booker:
+            raise BookingValidationError(f"Booker {booker_id} not found")
+
         # Validate date range
         self.validate_date_range(date_range)
-
-        # Check availability
-        if not self.is_available(accommodation, date_range):
-            raise BookingValidationError(
-                f"Accommodation not available from {date_range.start_date} to {date_range.end_date}"
-            )
 
         # Validate capacity
         if number_of_guests > accommodation.capacity:
@@ -85,30 +84,30 @@ class BookingService:
                 f"Number of guests ({number_of_guests}) exceeds capacity ({accommodation.capacity})"
             )
 
-        # Create booking
-        booking = Booking.objects.create(
-            accommodation=accommodation,
-            booker=booker,
-            start_date=date_range.start_date,
-            end_date=date_range.end_date,
-            number_of_guests=number_of_guests,
-            status="pending",
-        )
+        # Create booking - database exclusion constraint prevents overlaps
+        try:
+            # Import here to avoid circular dependency
+            from ..models import Booking
 
-        return booking
+            booking = Booking(
+                accommodation=accommodation,
+                booker=booker,
+                start_date=date_range.start_date,
+                end_date=date_range.end_date,
+                number_of_guests=number_of_guests,
+                status="pending",
+            )
+            return self.booking_repo.save(booking)
+        except IntegrityError as e:
+            # Check if it's the exclusion constraint
+            if "bookings_no_overlap" in str(e):
+                raise BookingValidationError(
+                    f"Accommodation not available from {date_range.start_date} to {date_range.end_date}"
+                )
+            raise
 
     @staticmethod
     def calculate_total_price(booking) -> float:
         """Calculate total price for a booking"""
         nights = booking.duration_nights()
-        return booking.accommodation.price_per_night * nights
-
-    @staticmethod
-    def can_confirm_booking(booking) -> bool:
-        """Check if booking can be confirmed"""
-        return booking.status == "pending"
-
-    @staticmethod
-    def can_cancel_booking(booking) -> bool:
-        """Check if booking can be cancelled"""
-        return booking.status in ["pending", "confirmed"]
+        return float(booking.accommodation.price_per_night) * nights

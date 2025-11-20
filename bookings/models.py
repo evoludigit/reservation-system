@@ -102,6 +102,7 @@ class Booking(models.Model):
         ],
         default="pending",
     )
+    version = models.IntegerField(default=0)  # For optimistic locking
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -128,28 +129,29 @@ class Booking(models.Model):
                 f"accommodation capacity ({self.accommodation.capacity})"
             )
 
-    def save(self, *args, **kwargs):
-        """Override save to check for overlapping bookings"""
-        # Check for overlapping bookings before saving
-        if not self.pk:  # Only check on creation, not update
-            overlapping = Booking.objects.filter(
-                accommodation=self.accommodation,
-                start_date__lt=self.end_date,
-                end_date__gt=self.start_date,
-                status__in=["pending", "confirmed"],
-            ).exists()
-            if overlapping:
-                from django.db import IntegrityError
-
-                raise IntegrityError(
-                    "Overlapping booking detected for this accommodation and date range"
-                )
-
-        super().save(*args, **kwargs)
-
     def duration_nights(self) -> int:
         """Calculate number of nights for the booking"""
         return (self.end_date - self.start_date).days
+
+    def can_confirm(self) -> bool:
+        """Check if booking can be confirmed"""
+        return self.status == "pending"
+
+    def can_cancel(self) -> bool:
+        """Check if booking can be cancelled"""
+        return self.status in ["pending", "confirmed"]
+
+    def confirm(self) -> None:
+        """Confirm the booking"""
+        if not self.can_confirm():
+            raise ValidationError(f"Cannot confirm booking with status '{self.status}'")
+        self.status = "confirmed"
+
+    def cancel(self) -> None:
+        """Cancel the booking"""
+        if not self.can_cancel():
+            raise ValidationError(f"Cannot cancel booking with status '{self.status}'")
+        self.status = "cancelled"
 
     def __str__(self):
         return f"Booking {self.id}: {self.accommodation.name} ({self.start_date} - {self.end_date})"
