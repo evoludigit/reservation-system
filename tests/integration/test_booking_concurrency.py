@@ -16,6 +16,7 @@ from bookings.infrastructure.repositories import (
 from bookings.models import Accommodation, Booker, Booking
 
 
+@pytest.mark.postgresql_only
 @pytest.mark.django_db(transaction=True)
 class TestBookingConcurrency:
     def test_concurrent_booking_creation_prevents_overlap(self):
